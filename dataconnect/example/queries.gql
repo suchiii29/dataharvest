@@ -1,0 +1,41 @@
+mutation CreateDataSource($title: String!, $type: String!, $content: String!, $description: String, $url: String, $private: Boolean) @auth(level: USER) {
+  dataSource_insert(data: {
+    title: $title,
+    type: $type,
+    content: $content,
+    description: $description,
+    url: $url,
+    private: $private,
+    userId_expr: "auth.uid"
+  })
+}
+
+query ListDataSources @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  dataSources(where: {userId: {eq_expr: "auth.uid"}}) {
+    id
+    title
+    type
+    content
+    description
+    url
+    private
+  }
+}
+
+mutation UpdateDataSource($id: UUID!, $title: String, $type: String, $content: String, $description: String, $url: String, $private: Boolean) @auth(level: USER) {
+  dataSource_update(
+    id: $id,
+    data: {
+      title: $title,
+      type: $type,
+      content: $content,
+      description: $description,
+      url: $url,
+      private: $private
+    }
+  )
+}
+
+mutation DeleteDataSource($id: UUID!) @auth(level: USER) {
+  dataSource_delete(id: $id)
+}

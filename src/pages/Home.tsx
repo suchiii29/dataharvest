@@ -5,15 +5,11 @@ import { Link } from "react-router-dom";
 import heroImage from "@/assets/farm-hero.jpg";
 import {
   Shield,
-  Zap,
   Globe,
-  CheckCircle,
   QrCode,
   BarChart3,
   Users,
-  Leaf,
   ArrowRight,
-  PlayCircle,
 } from "lucide-react";
 
 const Home = () => {
@@ -55,50 +51,20 @@ const Home = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
-                <Badge className="bg-gradient-primary text-white">
-                  Smart India Hackathon 2025 Winner
-                </Badge>
+                
                 <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
                   <span className="bg-gradient-hero bg-clip-text text-transparent">
                     DataHarvest
                   </span>
                   <br />
                   <span className="text-foreground">
-                    Farm Management Portal
+                    Livestock Management Portal
                   </span>
                 </h1>
                 <p className="text-xl text-muted-foreground leading-relaxed">
                   Digital platform for monitoring Maximum Residue Limits (MRL) and 
                   Antimicrobial Usage (AMU) in livestock with blockchain-powered traceability
                 </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button asChild className="bg-gradient-primary shadow-medium hover:shadow-strong transition-smooth">
-                  <Link to="/dashboard">
-                    Get Started
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button variant="outline" className="border-primary/20">
-                  <PlayCircle className="mr-2 h-4 w-4" />
-                  Watch Demo
-                </Button>
-              </div>
-
-              <div className="flex items-center space-x-8 text-sm text-muted-foreground pt-4">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                  <span>Blockchain Secure</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                  <span>AI Analytics</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                  <span>Mobile Ready</span>
-                </div>
               </div>
             </div>
             
@@ -211,44 +177,12 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Technology Stack */}
-      <section className="py-16 lg:py-24">
-        <div className="container mx-auto px-4">
-          <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl font-bold">Built with Modern Technology</h2>
-            <p className="text-xl text-muted-foreground">
-              Scalable, secure, and future-ready technology stack
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              "React Native",
-              "Node.js + Express",
-              "Supabase",
-              "Blockchain",
-              "AI & ML",
-              "QR Codes",
-              "Cloud Storage",
-              "Mobile Apps",
-            ].map((tech, index) => (
-              <div key={index} className="text-center p-6 bg-muted/50 rounded-lg">
-                <div className="w-12 h-12 bg-gradient-secondary rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Zap className="h-6 w-6 text-white" />
-                </div>
-                <p className="font-medium">{tech}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-16 lg:py-24 bg-gradient-hero text-white">
         <div className="container mx-auto px-4 text-center space-y-8">
           <div className="space-y-4">
             <h2 className="text-3xl lg:text-4xl font-bold">
-              Ready to Transform Your Farm Management?
+              Ready to Transform Your Livestock Management?
             </h2>
             <p className="text-xl opacity-90 max-w-2xl mx-auto">
               Join the digital agriculture revolution and ensure food safety 

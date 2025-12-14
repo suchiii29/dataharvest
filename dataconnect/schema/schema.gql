@@ -1,0 +1,41 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+}
+
+type DataSource @table {
+  title: String!
+  type: String!
+  createdAt: Timestamp!
+  content: String
+  url: String
+  description: String
+  private: Boolean
+  user: User
+}
+
+type Tag @table {
+  name: String!
+  createdAt: Timestamp!
+}
+
+type Folder @table {
+  name: String!
+  createdAt: Timestamp!
+  parentFolderId: UUID
+  user: User
+}
+
+type DataSourceTag @table(key: ["dataSource", "tag"]) {
+  dataSource: DataSource!
+  tag: Tag!
+  createdAt: Timestamp!
+}
+
+type DataSourceFolder @table(key: ["dataSource", "folder"]) {
+  dataSource: DataSource!
+  folder: Folder!
+  createdAt: Timestamp!
+}
