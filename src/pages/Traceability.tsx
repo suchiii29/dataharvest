@@ -9,199 +9,639 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
-  Search,
-  QrCode,
-  MapPin,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Utensils,
   Calendar,
   Truck,
-  Store,
+  Package,
   CheckCircle,
-  ArrowRight,
-  Scan,
+  Plus,
+  Loader2,
+  Leaf,
+  Factory,
+  BarChart3,
+  Clock,
 } from "lucide-react";
 import { db } from "@/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   collection,
-  query,
-  where,
   getDocs,
   addDoc,
   serverTimestamp,
+  query,
+  orderBy,
+  limit,
+  onSnapshot,
+  where,
 } from "firebase/firestore";
 
-const Traceability = () => {
-  const [searchCode, setSearchCode] = useState("");
-  const [traceResult, setTraceResult] = useState<any>(null);
-  const [recentScans, setRecentScans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+/* =======================
+   Types
+======================= */
+interface FeedRecord {
+  id: string;
+  animalId: string;
+  animalType: string;
+  animalBreed: string;
+  ownerName: string;
+  feedType: string;
+  feedSupplier: string;
+  feedBatchNumber: string;
+  feedingDate: string;
+  quantity: string;
+  feedSource: string;
+  notes: string;
+  createdAt: any;
+}
 
-  // 🔍 SEARCH BY QR CODE
-  const handleSearch = async () => {
-    if (!searchCode) return;
+interface LivestockData {
+  id: string;
+  ownerName: string;
+  type: string;
+  breed: string;
+}
+
+/* =======================
+   Main Component
+======================= */
+const Traceability = () => {
+  const { user } = useAuth();
+  const [livestock, setLivestock] = useState<LivestockData[]>([]);
+  const [feedRecords, setFeedRecords] = useState<FeedRecord[]>([]);
+  const [filteredRecords, setFilteredRecords] = useState<FeedRecord[]>([]);
+  const [selectedAnimalFilter, setSelectedAnimalFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Form State
+  const [selectedAnimal, setSelectedAnimal] = useState("");
+  const [feedType, setFeedType] = useState("");
+  const [feedSupplier, setFeedSupplier] = useState("");
+  const [feedBatch, setFeedBatch] = useState("");
+  const [feedDate, setFeedDate] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [feedSource, setFeedSource] = useState("");
+  const [notes, setNotes] = useState("");
+
+  /* =======================
+     FETCH LIVESTOCK
+  ======================= */
+  useEffect(() => {
+    if (!user) return;
+
+    const livestockRef = collection(db, "users", user.uid, "livestock");
+    const unsubscribe = onSnapshot(livestockRef, (snapshot) => {
+      const data: LivestockData[] = [];
+      snapshot.forEach((doc) => {
+        data.push({
+          id: doc.id,
+          ownerName: doc.data().ownerName,
+          type: doc.data().type,
+          breed: doc.data().breed,
+        });
+      });
+      setLivestock(data);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  /* =======================
+     FETCH FEED RECORDS
+  ======================= */
+  useEffect(() => {
+    if (!user) return;
+
+    const feedRef = collection(db, "users", user.uid, "feedRecords");
+    const q = query(feedRef, orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data: FeedRecord[] = [];
+      snapshot.forEach((doc) => {
+        data.push({
+          id: doc.id,
+          ...doc.data(),
+        } as FeedRecord);
+      });
+      setFeedRecords(data);
+      setFilteredRecords(data);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  /* =======================
+     FILTER RECORDS
+  ======================= */
+  useEffect(() => {
+    if (selectedAnimalFilter === "all") {
+      setFilteredRecords(feedRecords);
+    } else {
+      setFilteredRecords(
+        feedRecords.filter((record) => record.animalId === selectedAnimalFilter)
+      );
+    }
+  }, [selectedAnimalFilter, feedRecords]);
+
+  /* =======================
+     ADD FEED RECORD
+  ======================= */
+  const handleAddFeed = async () => {
+    if (!user) {
+      alert("Please log in first!");
+      return;
+    }
+
+    if (!selectedAnimal || !feedType || !feedSupplier || !feedDate) {
+      alert("Please fill all required fields!");
+      return;
+    }
+
     setLoading(true);
 
-    const q = query(
-      collection(db, "traceability"),
-      where("qrCode", "==", searchCode)
-    );
+    try {
+      const animal = livestock.find((a) => a.id === selectedAnimal);
+      if (!animal) return;
 
-    const snap = await getDocs(q);
-
-    if (!snap.empty) {
-      const data = snap.docs[0].data();
-      setTraceResult(data);
-
-      // log scan
-      await addDoc(collection(db, "qrScans"), {
-        qrCode: searchCode,
-        product: data.productName,
-        location: "Unknown",
+      await addDoc(collection(db, "users", user.uid, "feedRecords"), {
+        animalId: selectedAnimal,
+        animalType: animal.type,
+        animalBreed: animal.breed,
+        ownerName: animal.ownerName,
+        feedType,
+        feedSupplier,
+        feedBatchNumber: feedBatch,
+        feedingDate: feedDate,
+        quantity,
+        feedSource,
+        notes,
         createdAt: serverTimestamp(),
       });
 
-      fetchRecentScans();
-    } else {
-      setTraceResult(null);
+      // Reset form
+      setSelectedAnimal("");
+      setFeedType("");
+      setFeedSupplier("");
+      setFeedBatch("");
+      setFeedDate("");
+      setQuantity("");
+      setFeedSource("");
+      setNotes("");
+      setDialogOpen(false);
+
+      alert("Feed record added successfully!");
+    } catch (error) {
+      console.error("Error adding feed:", error);
+      alert("Failed to add feed record");
     }
 
     setLoading(false);
   };
 
-  // 🕒 FETCH RECENT SCANS
-  const fetchRecentScans = async () => {
-    const snap = await getDocs(collection(db, "qrScans"));
-    const scans: any[] = [];
-
-    snap.forEach((doc) => {
-      scans.push({ id: doc.id, ...doc.data() });
-    });
-
-    setRecentScans(scans.slice(0, 5));
+  /* =======================
+     CALCULATE STATS
+  ======================= */
+  const stats = {
+    totalRecords: feedRecords.length,
+    feedTypes: [...new Set(feedRecords.map((r) => r.feedType))].length,
+    suppliers: [...new Set(feedRecords.map((r) => r.feedSupplier))].length,
+    recentFeedings: feedRecords.filter((r) => {
+      const feedingDate = new Date(r.feedingDate);
+      const daysDiff = Math.floor(
+        (new Date().getTime() - feedingDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return daysDiff <= 7;
+    }).length,
   };
 
-  useEffect(() => {
-    fetchRecentScans();
-  }, []);
+  /* =======================
+     FORMAT DATE
+  ======================= */
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "N/A";
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return "N/A";
+    }
+  };
 
+  /* =======================
+     FEED TYPE DISTRIBUTION
+  ======================= */
+  const getFeedDistribution = () => {
+    const distribution: { [key: string]: number } = {};
+    feedRecords.forEach((record) => {
+      distribution[record.feedType] = (distribution[record.feedType] || 0) + 1;
+    });
+    return distribution;
+  };
+
+  /* =======================
+     SUPPLIER DISTRIBUTION
+  ======================= */
+  const getSupplierDistribution = () => {
+    const distribution: { [key: string]: number } = {};
+    feedRecords.forEach((record) => {
+      distribution[record.feedSupplier] = (distribution[record.feedSupplier] || 0) + 1;
+    });
+    return distribution;
+  };
+
+  /* =======================
+     UI
+  ======================= */
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Food Traceability</h1>
-          <p className="text-muted-foreground">
-            Track products from farm to consumer with QR codes
+          <h1 className="text-4xl font-bold">Food Traceability</h1>
+          <p className="text-gray-600 mt-1">
+            Track livestock feed and diet from supplier to animal
           </p>
         </div>
-        <Button className="bg-gradient-secondary">
-          <Scan className="h-4 w-4 mr-2" /> Scan QR Code
-        </Button>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Feed Record
+            </Button>
+          </DialogTrigger>
+
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add Feed Record</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label>Select Animal *</Label>
+                <Select onValueChange={setSelectedAnimal} value={selectedAnimal}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an animal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {livestock.map((animal) => (
+                      <SelectItem key={animal.id} value={animal.id}>
+                        {animal.type} - {animal.breed} (Owner: {animal.ownerName})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Feed Type *</Label>
+                  <Select onValueChange={setFeedType} value={feedType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select feed type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Grass/Hay">Grass/Hay</SelectItem>
+                      <SelectItem value="Grain">Grain (Corn, Wheat, Barley)</SelectItem>
+                      <SelectItem value="Silage">Silage</SelectItem>
+                      <SelectItem value="Concentrates">Concentrates</SelectItem>
+                      <SelectItem value="Mixed Feed">Mixed Feed</SelectItem>
+                      <SelectItem value="Organic Feed">Organic Feed</SelectItem>
+                      <SelectItem value="Pellets">Pellets</SelectItem>
+                      <SelectItem value="Vegetables">Vegetables/Greens</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Feed Supplier *</Label>
+                  <Input
+                    placeholder="e.g., ABC Feeds Ltd"
+                    value={feedSupplier}
+                    onChange={(e) => setFeedSupplier(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Batch Number</Label>
+                  <Input
+                    placeholder="e.g., BATCH-2024-001"
+                    value={feedBatch}
+                    onChange={(e) => setFeedBatch(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Feed Source</Label>
+                  <Select onValueChange={setFeedSource} value={feedSource}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Local Farm">Local Farm</SelectItem>
+                      <SelectItem value="Commercial Supplier">Commercial Supplier</SelectItem>
+                      <SelectItem value="Own Production">Own Production</SelectItem>
+                      <SelectItem value="Import">Import</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Feeding Date *</Label>
+                  <Input
+                    type="date"
+                    value={feedDate}
+                    onChange={(e) => setFeedDate(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label>Quantity</Label>
+                  <Input
+                    placeholder="e.g., 10kg, 2 bales"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Notes</Label>
+                <Input
+                  placeholder="Additional information..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              <Button
+                className="w-full"
+                onClick={handleAddFeed}
+                disabled={loading}
+                size="lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Feed Record"
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* SEARCH */}
+      {/* STATS CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-gray-600">Total Feed Records</p>
+                <p className="text-3xl font-bold mt-1">{stats.totalRecords}</p>
+              </div>
+              <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <Utensils className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-gray-600">Feed Types</p>
+                <p className="text-3xl font-bold mt-1">{stats.feedTypes}</p>
+              </div>
+              <div className="p-3 rounded-full bg-green-100 text-green-600">
+                <Package className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-gray-600">Suppliers</p>
+                <p className="text-3xl font-bold mt-1">{stats.suppliers}</p>
+              </div>
+              <div className="p-3 rounded-full bg-orange-100 text-orange-600">
+                <Factory className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-gray-600">Recent (7 days)</p>
+                <p className="text-3xl font-bold mt-1">{stats.recentFeedings}</p>
+              </div>
+              <div className="p-3 rounded-full bg-purple-100 text-purple-600">
+                <Clock className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* FILTER */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" /> Product Traceability Search
-          </CardTitle>
-          <CardDescription>
-            Enter QR code to view full product journey
-          </CardDescription>
+          <CardTitle>Filter Feed Records</CardTitle>
         </CardHeader>
-        <CardContent className="flex gap-4">
-          <Input
-            placeholder="Enter QR code (QR-COW-1247)"
-            value={searchCode}
-            onChange={(e) => setSearchCode(e.target.value)}
-          />
-          <Button onClick={handleSearch} disabled={loading}>
-            {loading ? "Searching..." : "Trace Product"}
-          </Button>
+        <CardContent>
+          <Select
+            onValueChange={setSelectedAnimalFilter}
+            value={selectedAnimalFilter}
+          >
+            <SelectTrigger className="max-w-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Animals</SelectItem>
+              {livestock.map((animal) => (
+                <SelectItem key={animal.id} value={animal.id}>
+                  {animal.type} - {animal.breed} (Owner: {animal.ownerName})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
-      {/* RESULT */}
-      {traceResult && (
-        <Card className="shadow-strong">
+      {/* FEED DISTRIBUTION */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
           <CardHeader>
-            <CardTitle>Traceability Results</CardTitle>
-            <CardDescription>{traceResult.productName}</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Leaf className="h-5 w-5" />
+              Feed Types Distribution
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-
-            {/* FARM */}
-            <Timeline icon={<MapPin />} title="Farm Origin">
-              <Info label="Farm" value={traceResult.origin.farm} />
-              <Info label="Location" value={traceResult.origin.location} />
-              <Info label="Farmer" value={traceResult.origin.farmer} />
-              <Info label="Date" value={traceResult.origin.date} />
-            </Timeline>
-
-            <ArrowRight className="mx-auto" />
-
-            {/* PROCESSING */}
-            <Timeline icon={<CheckCircle />} title="Processing">
-              <Info label="Facility" value={traceResult.processing.facility} />
-              <Info label="Batch" value={traceResult.processing.batchId} />
-            </Timeline>
-
-            <ArrowRight className="mx-auto" />
-
-            {/* DISTRIBUTION */}
-            <Timeline icon={<Truck />} title="Distribution">
-              <Info label="Distributor" value={traceResult.distribution.distributor} />
-              <Info label="Tracking ID" value={traceResult.distribution.trackingId} />
-            </Timeline>
-
-            <ArrowRight className="mx-auto" />
-
-            {/* RETAIL */}
-            <Timeline icon={<Store />} title="Retail">
-              <Info label="Store" value={traceResult.retail.store} />
-              <Info label="Expiry" value={traceResult.retail.expiryDate} />
-            </Timeline>
+          <CardContent>
+            {Object.keys(getFeedDistribution()).length === 0 ? (
+              <p className="text-center text-gray-500 py-4">No feed data available</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(getFeedDistribution()).map(([type, count]) => (
+                  <div key={type} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span className="text-sm">{type}</span>
+                    </div>
+                    <Badge>{count} records</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
-      )}
 
-      {/* RECENT SCANS */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5" />
+              Supplier Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Object.keys(getSupplierDistribution()).length === 0 ? (
+              <p className="text-center text-gray-500 py-4">No supplier data available</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(getSupplierDistribution()).map(([supplier, count]) => (
+                  <div key={supplier} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                      <span className="text-sm">{supplier}</span>
+                    </div>
+                    <Badge variant="outline">{count} records</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* FEED RECORDS */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent QR Code Scans</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Feed Records ({filteredRecords.length})
+          </CardTitle>
+          <CardDescription>
+            {selectedAnimalFilter === "all"
+              ? "Showing all feed records"
+              : "Showing filtered records"}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {recentScans.map((scan) => (
-            <div key={scan.id} className="flex justify-between p-3 bg-muted rounded">
-              <div className="flex gap-2">
-                <QrCode />
-                <div>
-                  <p className="font-medium">{scan.product}</p>
-                  <p className="text-sm">{scan.qrCode}</p>
-                </div>
-              </div>
-              <Badge variant="outline">Scanned</Badge>
+        <CardContent>
+          {filteredRecords.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Utensils className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">No feed records yet</p>
+              <p className="text-sm">
+                Click "Add Feed Record" to start tracking livestock diet
+              </p>
             </div>
-          ))}
+          ) : (
+            <div className="space-y-4">
+              {filteredRecords.map((record) => (
+                <div
+                  key={record.id}
+                  className="p-5 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="font-bold text-lg">
+                        {record.animalType} - {record.animalBreed}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Owner: {record.ownerName}
+                      </p>
+                    </div>
+                    <Badge className="bg-green-600 text-white">
+                      {record.feedType}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-600">Supplier</p>
+                      <p className="font-medium">{record.feedSupplier}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Batch Number</p>
+                      <p className="font-medium">{record.feedBatchNumber || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Quantity</p>
+                      <p className="font-medium">{record.quantity || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Date</p>
+                      <p className="font-medium">{record.feedingDate}</p>
+                    </div>
+                  </div>
+
+                  {record.feedSource && (
+                    <div className="mt-3">
+                      <Badge variant="outline">Source: {record.feedSource}</Badge>
+                    </div>
+                  )}
+
+                  {record.notes && (
+                    <p className="text-sm text-gray-600 mt-3 italic bg-white p-2 rounded">
+                      {record.notes}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-gray-500 mt-2">
+                    Added: {formatDate(record.createdAt)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 };
-
-const Timeline = ({ icon, title, children }: any) => (
-  <div className="p-4 border-l-4 rounded bg-muted/30">
-    <div className="flex items-center gap-2 mb-3">
-      {icon} <h3 className="font-semibold">{title}</h3>
-    </div>
-    <div className="grid grid-cols-2 gap-3">{children}</div>
-  </div>
-);
-
-const Info = ({ label, value }: any) => (
-  <div>
-    <p className="text-sm text-muted-foreground">{label}</p>
-    <p className="font-medium">{value}</p>
-  </div>
-);
 
 export default Traceability;
