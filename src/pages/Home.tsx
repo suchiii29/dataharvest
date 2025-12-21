@@ -51,7 +51,6 @@ const Home = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
-                
                 <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
                   <span className="bg-gradient-hero bg-clip-text text-transparent">
                     DataHarvest
@@ -67,7 +66,7 @@ const Home = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-hero opacity-20 rounded-2xl blur-3xl"></div>
               <img
@@ -88,8 +87,7 @@ const Home = () => {
               Revolutionary Farm-to-Fork Solution
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Combining cloud technology, mobile apps, QR codes, and blockchain to ensure 
-              food safety and transparency across the entire supply chain
+              .
             </p>
           </div>
 
@@ -97,7 +95,10 @@ const Home = () => {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={index} className="shadow-soft hover:shadow-medium transition-smooth border-0 bg-background/80 backdrop-blur">
+                <Card
+                  key={index}
+                  className="shadow-soft hover:shadow-medium transition-smooth border-0 bg-background/80 backdrop-blur"
+                >
                   <CardContent className="p-6 text-center">
                     <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
                       <Icon className="h-8 w-8 text-white" />
@@ -108,39 +109,6 @@ const Home = () => {
                 </Card>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* Problem & Solution */}
-      <section className="py-16 lg:py-24">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <Badge className="bg-destructive/10 text-destructive">The Problem</Badge>
-                <h2 className="text-3xl font-bold">Food Safety Challenges</h2>
-                <div className="space-y-3 text-muted-foreground">
-                  <p>• Low farmer awareness with local language barriers</p>
-                  <p>• Data accuracy and connectivity issues in rural areas</p>
-                  <p>• Lack of enforcement and laboratory integration</p>
-                  <p>• No transparent tracking from farm to consumer</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <Badge className="bg-primary/10 text-primary">Our Solution</Badge>
-                <h2 className="text-3xl font-bold">Comprehensive Digital Platform</h2>
-                <div className="space-y-3 text-muted-foreground">
-                  <p>• Cloud, mobile, and QR code integration</p>
-                  <p>• Blockchain ensures data integrity and trust</p>
-                  <p>• AI-powered predictive analytics</p>
-                  <p>• Real-time monitoring and compliance reporting</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -177,34 +145,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 lg:py-24 bg-gradient-hero text-white">
-        <div className="container mx-auto px-4 text-center space-y-8">
-          <div className="space-y-4">
-            <h2 className="text-3xl lg:text-4xl font-bold">
-              Ready to Transform Your Livestock Management?
-            </h2>
-            <p className="text-xl opacity-90 max-w-2xl mx-auto">
-              Join the digital agriculture revolution and ensure food safety 
-              from farm to consumer with DataHarvest
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90 shadow-medium">
-              <Link to="/dashboard">
-                Start Your Journey
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
-              <Link to="/traceability">
-                Try Traceability
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };
